@@ -1,0 +1,1504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Math Runner</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Press+Start+2P&display=swap');
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: #0a0a0f;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    font-family: 'Orbitron', sans-serif;
+  }
+
+  #gameContainer {
+    position: relative;
+    width: 900px;
+    height: 500px;
+    border: 2px solid #00ffaa33;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 0 40px #00ffaa22, inset 0 0 60px #00000088;
+  }
+
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  #ui-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none;
+  }
+
+  #hud {
+    position: absolute;
+    top: 12px; left: 16px; right: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    font-family: 'Orbitron', sans-serif;
+    z-index: 10;
+  }
+
+  .hud-block {
+    background: #000000aa;
+    border: 1px solid #00ffaa44;
+    border-radius: 8px;
+    padding: 6px 14px;
+    color: #00ffaa;
+    font-size: 13px;
+    text-shadow: 0 0 8px #00ffaa88;
+  }
+
+  .hud-block .label { font-size: 9px; color: #00ffaa88; letter-spacing: 2px; }
+  .hud-block .value { font-size: 18px; font-weight: 900; }
+
+  #combo-display {
+    position: absolute;
+    top: 60px; left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 28px;
+    font-weight: 900;
+    color: #ffcc00;
+    text-shadow: 0 0 20px #ffcc00aa;
+    opacity: 0;
+    transition: opacity 0.3s;
+    z-index: 10;
+  }
+
+  #math-storm-banner {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'Press Start 2P', monospace;
+    font-size: 22px;
+    color: #ff44ff;
+    text-shadow: 0 0 30px #ff44ffcc;
+    opacity: 0;
+    z-index: 20;
+    letter-spacing: 3px;
+  }
+
+  #answer-panel {
+    position: absolute;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: none;
+    gap: 10px;
+    z-index: 15;
+    pointer-events: auto;
+  }
+
+  .answer-btn {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 20px;
+    font-weight: 900;
+    padding: 10px 24px;
+    border: 2px solid #00ffaa66;
+    border-radius: 8px;
+    background: #0a0a0fcc;
+    color: #00ffaa;
+    cursor: pointer;
+    transition: all 0.15s;
+    min-width: 80px;
+    text-align: center;
+  }
+
+  .answer-btn:hover {
+    background: #00ffaa22;
+    border-color: #00ffaa;
+    box-shadow: 0 0 15px #00ffaa44;
+    transform: scale(1.08);
+  }
+
+  .answer-btn:active { transform: scale(0.95); }
+
+  .answer-btn.correct {
+    background: #00ff44aa;
+    border-color: #00ff44;
+    color: #ffffff;
+    box-shadow: 0 0 20px #00ff44aa;
+  }
+
+  .answer-btn.wrong {
+    background: #ff4444aa;
+    border-color: #ff4444;
+    color: #ffffff;
+    box-shadow: 0 0 20px #ff4444aa;
+  }
+
+  #start-screen, #gameover-screen {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background: #0a0a0fdd;
+    z-index: 100;
+    pointer-events: auto;
+  }
+
+  #start-screen h1 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 42px;
+    font-weight: 900;
+    background: linear-gradient(90deg, #00ffaa, #00aaff, #ff44ff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 8px;
+    letter-spacing: 4px;
+  }
+
+  #start-screen .subtitle {
+    font-size: 13px;
+    color: #00ffaa88;
+    margin-bottom: 36px;
+    letter-spacing: 3px;
+  }
+
+  .big-btn {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    padding: 14px 44px;
+    border: 2px solid #00ffaa;
+    border-radius: 10px;
+    background: transparent;
+    color: #00ffaa;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 2px;
+  }
+
+  .big-btn:hover {
+    background: #00ffaa22;
+    box-shadow: 0 0 30px #00ffaa44;
+    transform: scale(1.05);
+  }
+
+  .controls-info {
+    margin-top: 28px;
+    color: #ffffff55;
+    font-size: 11px;
+    text-align: center;
+    line-height: 2;
+    letter-spacing: 1px;
+  }
+
+  #gameover-screen h2 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 34px;
+    font-weight: 900;
+    color: #ff4444;
+    text-shadow: 0 0 20px #ff444488;
+    margin-bottom: 20px;
+  }
+
+  #gameover-screen .final-score {
+    font-size: 18px;
+    color: #00ffaa;
+    margin-bottom: 6px;
+  }
+
+  #gameover-screen .stats-line {
+    font-size: 12px;
+    color: #ffffff88;
+    margin: 3px 0;
+  }
+
+  #gameover-screen .big-btn { margin-top: 24px; }
+
+  #powerup-indicator {
+    position: absolute;
+    top: 56px; left: 16px;
+    display: flex;
+    gap: 8px;
+    z-index: 10;
+  }
+
+  .powerup-badge {
+    font-size: 10px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    letter-spacing: 1px;
+    animation: pulse-badge 0.6s infinite alternate;
+  }
+
+  @keyframes pulse-badge {
+    from { opacity: 0.7; }
+    to { opacity: 1; }
+  }
+
+  .badge-calc { background: #00aaff44; border: 1px solid #00aaff; color: #00aaff; }
+  .badge-fuel { background: #ffaa0044; border: 1px solid #ffaa00; color: #ffaa00; }
+  .badge-time { background: #ff44ff44; border: 1px solid #ff44ff; color: #ff44ff; }
+
+  #level-display {
+    position: absolute;
+    top: 56px; right: 16px;
+    font-size: 11px;
+    color: #ffcc0088;
+    z-index: 10;
+    letter-spacing: 2px;
+  }
+
+  #equation-display {
+    position: absolute;
+    top: 45%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 36px;
+    font-weight: 900;
+    color: #ffffff;
+    text-shadow: 0 0 20px #ffffff44;
+    opacity: 0;
+    z-index: 12;
+    transition: opacity 0.3s;
+    text-align: center;
+  }
+
+  #equation-display .eq-label {
+    font-size: 10px;
+    color: #ffffff55;
+    letter-spacing: 3px;
+    margin-bottom: 4px;
+  }
+
+  #theme-label {
+    position: absolute;
+    bottom: 60px; right: 16px;
+    font-size: 9px;
+    color: #ffffff33;
+    letter-spacing: 2px;
+    z-index: 10;
+  }
+
+  .float-text {
+    position: absolute;
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 900;
+    pointer-events: none;
+    z-index: 30;
+    animation: floatUp 1s forwards;
+  }
+
+  @keyframes floatUp {
+    0% { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(-60px); }
+  }
+
+  @media (max-width: 920px) {
+    #gameContainer { width: 100vw; height: 56vw; border-radius: 0; border: none; }
+  }
+</style>
+</head>
+<body>
+
+<div id="gameContainer">
+  <canvas id="gameCanvas"></canvas>
+  <div id="ui-overlay">
+    <div id="hud">
+      <div class="hud-block">
+        <div class="label">SCORE</div>
+        <div class="value" id="hud-score">0</div>
+      </div>
+      <div class="hud-block" style="text-align:center;">
+        <div class="label">COMBO</div>
+        <div class="value" id="hud-combo">0x</div>
+      </div>
+      <div class="hud-block" style="text-align:right;">
+        <div class="label">HIGH</div>
+        <div class="value" id="hud-high">0</div>
+      </div>
+    </div>
+
+    <div id="combo-display"></div>
+    <div id="math-storm-banner">⚡ MATH STORM ⚡</div>
+    <div id="equation-display">
+      <div class="eq-label">SOLVE</div>
+      <div id="eq-text"></div>
+    </div>
+
+    <div id="powerup-indicator"></div>
+    <div id="level-display">LV 1</div>
+    <div id="theme-label">CITY</div>
+
+    <div id="answer-panel">
+      <button class="answer-btn" data-idx="0"></button>
+      <button class="answer-btn" data-idx="1"></button>
+      <button class="answer-btn" data-idx="2"></button>
+      <button class="answer-btn" data-idx="3"></button>
+    </div>
+
+    <div id="start-screen">
+      <h1>MATH RUNNER</h1>
+      <div class="subtitle">ENDLESS EQUATION SOLVING RUNNER</div>
+      <button class="big-btn" id="start-btn">START RUN</button>
+      <div class="controls-info">
+        SPACE / UP — Jump<br>
+        1 2 3 4 — Answer<br>
+        Solve equations to survive &amp; score!
+      </div>
+    </div>
+
+    <div id="gameover-screen" style="display:none;">
+      <h2>GAME OVER</h2>
+      <div class="final-score" id="go-score">0</div>
+      <div class="stats-line" id="go-level"></div>
+      <div class="stats-line" id="go-correct"></div>
+      <div class="stats-line" id="go-combo"></div>
+      <div class="stats-line" id="go-theme"></div>
+      <button class="big-btn" id="restart-btn">RUN AGAIN</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+// GAME ENGINE — Math Runner
+// ═══════════════════════════════════════════
+
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+// Fixed internal resolution
+const W = 900, H = 500;
+canvas.width = W;
+canvas.height = H;
+
+// DOM references
+const hudScore = document.getElementById('hud-score');
+const hudCombo = document.getElementById('hud-combo');
+const hudHigh = document.getElementById('hud-high');
+const comboDisplay = document.getElementById('combo-display');
+const mathStormBanner = document.getElementById('math-storm-banner');
+const equationDisplay = document.getElementById('equation-display');
+const eqText = document.getElementById('eq-text');
+const answerPanel = document.getElementById('answer-panel');
+const answerBtns = document.querySelectorAll('.answer-btn');
+const powerupIndicator = document.getElementById('powerup-indicator');
+const levelDisplay = document.getElementById('level-display');
+const themeLabel = document.getElementById('theme-label');
+const startScreen = document.getElementById('start-screen');
+const gameoverScreen = document.getElementById('gameover-screen');
+const gameContainer = document.getElementById('gameContainer');
+
+// ═══════════════════════════════════════════
+// THEMES
+// ═══════════════════════════════════════════
+const themes = {
+  city: {
+    name: 'CITY',
+    sky1: '#0a0a1a', sky2: '#1a1a3a',
+    groundColor: '#1a1a2e', groundLine: '#00ffaa33',
+    accent: '#00ffaa', accentDim: '#00ffaa44',
+    buildingColors: ['#0d0d20', '#111130', '#0a0a25'],
+    buildingWindows: '#ffcc0044',
+    particleColor: '#00ffaa',
+    obstacleColor: '#ff4466',
+    obstacleGlow: '#ff446688',
+    starColor: '#ffffff22',
+  },
+  space: {
+    name: 'SPACE',
+    sky1: '#020010', sky2: '#0a0030',
+    groundColor: '#0a0020', groundLine: '#aa44ff33',
+    accent: '#aa44ff', accentDim: '#aa44ff44',
+    buildingColors: ['#0d0018', '#110025', '#0a001a'],
+    buildingWindows: '#00aaff44',
+    particleColor: '#aa44ff',
+    obstacleColor: '#ff8844',
+    obstacleGlow: '#ff884488',
+    starColor: '#ffffff44',
+  },
+  underwater: {
+    name: 'UNDERWATER',
+    sky1: '#001020', sky2: '#002040',
+    groundColor: '#001830', groundLine: '#00aaff33',
+    accent: '#00ccff', accentDim: '#00ccff44',
+    buildingColors: ['#001525', '#002040', '#001a35'],
+    buildingWindows: '#44ffaa44',
+    particleColor: '#00ccff',
+    obstacleColor: '#ff6644',
+    obstacleGlow: '#ff664488',
+    starColor: '#88ccff22',
+  },
+  cyberpunk: {
+    name: 'CYBERPUNK',
+    sky1: '#100015', sky2: '#200025',
+    groundColor: '#150018', groundLine: '#ff44ff33',
+    accent: '#ff44ff', accentDim: '#ff44ff44',
+    buildingColors: ['#12001a', '#180022', '#100016'],
+    buildingWindows: '#00ffff44',
+    particleColor: '#ff44ff',
+    obstacleColor: '#ffaa00',
+    obstacleGlow: '#ffaa0088',
+    starColor: '#ff44ff22',
+  }
+};
+
+const themeKeys = ['city', 'space', 'underwater', 'cyberpunk'];
+
+// ═══════════════════════════════════════════
+// GAME STATE
+// ═══════════════════════════════════════════
+let state = {
+  running: false,
+  gameover: false,
+  score: 0,
+  highScore: parseInt(localStorage.getItem('mathRunnerHigh') || '0'),
+  combo: 0,
+  maxCombo: 0,
+  totalCorrect: 0,
+  level: 1,
+  speed: 3.5,
+  baseSpeed: 3.5,
+  distance: 0,
+  themeIdx: 0,
+  // Player
+  px: 120, py: 0, pw: 28, ph: 40,
+  vy: 0, grounded: true, jumpCount: 0, maxJumps: 2,
+  // Obstacles
+  obstacles: [],
+  obstacleTimer: 0,
+  obstacleInterval: 120,
+  // Math
+  currentEq: null,
+  eqActive: false,
+  eqTimer: 0,
+  eqCooldown: 0,
+  // Math Storm
+  mathStorm: false,
+  mathStormTimer: 0,
+  // Power-ups
+  powerups: [],
+  powerupTimer: 0,
+  activePowerups: { calc: 0, fuel: 0, time: 0 },
+  // Visuals
+  buildings: [],
+  stars: [],
+  particles: [],
+  bgOffset: 0,
+  groundOffset: 0,
+  shakeX: 0, shakeY: 0, shakeDur: 0,
+  // Floating texts
+  floatTexts: [],
+};
+
+const GROUND_Y = H - 70;
+const GRAVITY = 0.55;
+const JUMP_VEL = -11.5;
+
+// ═══════════════════════════════════════════
+// MATH ENGINE
+// ═══════════════════════════════════════════
+function generateEquation(level) {
+  let question, answer;
+  const diff = level <= 10 ? 'basic' : level <= 25 ? 'algebra' : 'advanced';
+
+  if (diff === 'basic') {
+    const ops = ['+', '-', '×'];
+    const op = ops[Math.floor(Math.random() * ops.length)];
+    let a, b;
+    if (op === '+') {
+      a = rand(1, 12 + level); b = rand(1, 12 + level);
+      answer = a + b;
+    } else if (op === '-') {
+      a = rand(5, 20 + level); b = rand(1, a);
+      answer = a - b;
+    } else {
+      a = rand(2, 6 + Math.floor(level / 3)); b = rand(2, 6 + Math.floor(level / 3));
+      answer = a * b;
+    }
+    question = `${a} ${op} ${b}`;
+  } else if (diff === 'algebra') {
+    const type = rand(0, 2);
+    if (type === 0) {
+      // Simple solve: x + b = c
+      const b = rand(2, 20), c = rand(b + 1, b + 20);
+      answer = c - b;
+      question = `x + ${b} = ${c}`;
+    } else if (type === 1) {
+      // ax = c
+      const a = rand(2, 6), c = a * rand(2, 8);
+      answer = c / a;
+      question = `${a}x = ${c}`;
+    } else {
+      // x - b = c
+      const b = rand(2, 15), c = rand(b + 1, b + 15);
+      answer = c + b;
+      question = `x - ${b} = ${c}`;
+    }
+  } else {
+    const type = rand(0, 3);
+    if (type === 0) {
+      // x² = c
+      const a = rand(2, 8);
+      answer = a * a;
+      question = `${a}²`;
+    } else if (type === 1) {
+      // √c
+      const a = rand(2, 12);
+      answer = a;
+      question = `√${a * a}`;
+    } else if (type === 2) {
+      // Modulo
+      const a = rand(10, 50), b = rand(3, 9);
+      answer = a % b;
+      question = `${a} mod ${b}`;
+    } else {
+      // Power
+      const a = rand(2, 5), b = rand(2, 4);
+      answer = Math.pow(a, b);
+      question = `${a}^${b}`;
+    }
+  }
+
+  // Generate wrong answers (close to correct)
+  const choices = [answer];
+  while (choices.length < 4) {
+    let wrong;
+    const offset = rand(1, Math.max(3, Math.abs(answer) > 10 ? 5 : 3));
+    wrong = answer + (Math.random() < 0.5 ? offset : -offset);
+    if (wrong < 0) wrong = answer + offset;
+    if (!choices.includes(wrong)) choices.push(wrong);
+  }
+
+  // Shuffle
+  for (let i = choices.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [choices[i], choices[j]] = [choices[j], choices[i]];
+  }
+
+  // Points based on difficulty
+  let points;
+  if (diff === 'basic') points = 100 + Math.min(level * 10, 200);
+  else if (diff === 'algebra') points = 250 + Math.min((level - 10) * 15, 250);
+  else points = 400 + Math.min((level - 25) * 20, 100);
+
+  if (state.mathStorm) points *= 2;
+
+  return { question, answer, choices, points, difficulty: diff };
+}
+
+function rand(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+// ═══════════════════════════════════════════
+// BUILDINGS & STARS
+// ═══════════════════════════════════════════
+function initBuildings() {
+  state.buildings = [];
+  for (let i = 0; i < 14; i++) {
+    state.buildings.push({
+      x: i * 75,
+      w: rand(30, 60),
+      h: rand(60, 200),
+      colorIdx: rand(0, 2),
+      windowRows: 0,
+      windowCols: 0,
+    });
+    const b = state.buildings[i];
+    b.windowRows = Math.floor(b.h / 20);
+    b.windowCols = Math.floor(b.w / 14);
+  }
+}
+
+function initStars() {
+  state.stars = [];
+  for (let i = 0; i < 80; i++) {
+    state.stars.push({
+      x: Math.random() * W,
+      y: Math.random() * (GROUND_Y - 30),
+      size: Math.random() * 2 + 0.5,
+      blink: Math.random() * Math.PI * 2,
+      speed: Math.random() * 0.02 + 0.01,
+    });
+  }
+}
+
+// ═══════════════════════════════════════════
+// PARTICLES
+// ═══════════════════════════════════════════
+function spawnParticles(x, y, color, count, spread) {
+  for (let i = 0; i < count; i++) {
+    state.particles.push({
+      x, y,
+      vx: (Math.random() - 0.5) * spread,
+      vy: (Math.random() - 0.5) * spread - 1,
+      life: 1,
+      decay: 0.02 + Math.random() * 0.02,
+      color,
+      size: 2 + Math.random() * 3,
+    });
+  }
+}
+
+// ═══════════════════════════════════════════
+// FLOATING TEXT
+// ═══════════════════════════════════════════
+function addFloatText(x, y, text, color, size) {
+  const el = document.createElement('div');
+  el.className = 'float-text';
+  el.style.left = (x / W * 100) + '%';
+  el.style.top = (y / H * 100) + '%';
+  el.style.color = color;
+  el.style.fontSize = size + 'px';
+  el.textContent = text;
+  gameContainer.appendChild(el);
+  setTimeout(() => el.remove(), 1000);
+}
+
+// ═══════════════════════════════════════════
+// POWER-UPS
+// ═══════════════════════════════════════════
+function spawnPowerup() {
+  const types = ['calc', 'fuel', 'time'];
+  const type = types[rand(0, 2)];
+  state.powerups.push({
+    x: W + 20,
+    y: GROUND_Y - rand(80, 160),
+    type,
+    size: 18,
+    bobPhase: Math.random() * Math.PI * 2,
+  });
+}
+
+// ═══════════════════════════════════════════
+// OBSTACLES
+// ═══════════════════════════════════════════
+function spawnObstacle() {
+  const types = state.level <= 10 ? ['block', 'spike'] :
+                state.level <= 25 ? ['block', 'spike', 'floating', 'wall'] :
+                ['block', 'spike', 'floating', 'wall', 'laser'];
+
+  const type = types[rand(0, types.length - 1)];
+  let obs = { x: W + 20, type, hit: false };
+
+  if (type === 'block') {
+    obs.w = rand(25, 45);
+    obs.h = rand(30, 50);
+    obs.y = GROUND_Y - obs.h;
+  } else if (type === 'spike') {
+    obs.w = 30; obs.h = 35;
+    obs.y = GROUND_Y - obs.h;
+  } else if (type === 'floating') {
+    obs.w = 40; obs.h = 25;
+    obs.y = GROUND_Y - rand(90, 140);
+  } else if (type === 'wall') {
+    obs.w = 18; obs.h = rand(60, 90);
+    obs.y = GROUND_Y - obs.h;
+  } else if (type === 'laser') {
+    obs.w = 120; obs.h = 6;
+    obs.y = GROUND_Y - rand(50, 80);
+    obs.laserPhase = 0;
+  }
+
+  state.obstacles.push(obs);
+
+  // Sometimes pair with an equation
+  if (!state.eqActive && state.eqCooldown <= 0 && Math.random() < 0.55) {
+    triggerEquation();
+  }
+}
+
+// ═══════════════════════════════════════════
+// EQUATION DISPLAY
+// ═══════════════════════════════════════════
+function triggerEquation() {
+  state.currentEq = generateEquation(state.level);
+  state.eqActive = true;
+  state.eqTimer = Math.max(180, 300 - state.level * 3); // frames to answer
+
+  eqText.textContent = state.currentEq.question + ' = ?';
+  equationDisplay.style.opacity = '1';
+
+  answerPanel.style.display = 'flex';
+  answerBtns.forEach((btn, i) => {
+    btn.textContent = state.currentEq.choices[i];
+    btn.className = 'answer-btn';
+  });
+}
+
+function submitAnswer(idx) {
+  if (!state.eqActive || !state.currentEq) return;
+
+  const chosen = state.currentEq.choices[idx];
+  const correct = chosen === state.currentEq.answer;
+
+  answerBtns.forEach((btn, i) => {
+    if (state.currentEq.choices[i] === state.currentEq.answer) btn.classList.add('correct');
+    if (i === idx && !correct) btn.classList.add('wrong');
+  });
+
+  if (correct) {
+    state.combo++;
+    if (state.combo > state.maxCombo) state.maxCombo = state.combo;
+    state.totalCorrect++;
+
+    let points = state.currentEq.points;
+    const comboMult = Math.min(state.combo, 10);
+    points = Math.floor(points * (1 + comboMult * 0.1));
+    state.score += points;
+
+    spawnParticles(state.px + 14, state.py + 20, '#00ff44', 20, 6);
+    addFloatText(W / 2, H / 2 - 40, `+${points}`, '#00ffaa', 24);
+    if (state.combo >= 3) {
+      comboDisplay.textContent = `${state.combo}x COMBO!`;
+      comboDisplay.style.opacity = '1';
+      comboDisplay.style.color = state.combo >= 8 ? '#ff44ff' : state.combo >= 5 ? '#ffcc00' : '#00ffaa';
+    }
+  } else {
+    state.combo = 0;
+    state.shakeDur = 12;
+    spawnParticles(state.px + 14, state.py + 20, '#ff4444', 15, 5);
+    addFloatText(W / 2, H / 2 - 40, 'MISS!', '#ff4444', 22);
+    comboDisplay.style.opacity = '0';
+    // Lose a bit of distance / speed penalty
+    state.speed = Math.max(state.baseSpeed, state.speed - 0.3);
+  }
+
+  // Close equation after short delay
+  setTimeout(() => {
+    state.eqActive = false;
+    state.currentEq = null;
+    state.eqCooldown = 60;
+    equationDisplay.style.opacity = '0';
+    answerPanel.style.display = 'none';
+  }, 400);
+}
+
+// ═══════════════════════════════════════════
+// MATH STORM
+// ═══════════════════════════════════════════
+function triggerMathStorm() {
+  state.mathStorm = true;
+  state.mathStormTimer = 600; // 10 seconds at 60fps
+  mathStormBanner.style.opacity = '1';
+  state.speed = Math.min(state.speed + 1.5, 10);
+  spawnParticles(W / 2, H / 2, '#ff44ff', 40, 10);
+}
+
+// ═══════════════════════════════════════════
+// COLLISION
+// ═══════════════════════════════════════════
+function checkCollision(obs) {
+  // Player hitbox slightly smaller than visual for fairness
+  const px1 = state.px + 4, py1 = state.py + 4;
+  const px2 = state.px + state.pw - 4, py2 = state.py + state.ph - 4;
+  const ox1 = obs.x, oy1 = obs.y;
+  const ox2 = obs.x + obs.w, oy2 = obs.y + obs.h;
+
+  return px1 < ox2 && px2 > ox1 && py1 < oy2 && py2 > oy1;
+}
+
+// ═══════════════════════════════════════════
+// UPDATE
+// ═══════════════════════════════════════════
+function update() {
+  if (!state.running || state.gameover) return;
+
+  const theme = themes[themeKeys[state.themeIdx]];
+  state.distance += state.speed;
+  state.bgOffset = (state.bgOffset + state.speed * 0.3) % W;
+  state.groundOffset = (state.groundOffset + state.speed) % 40;
+
+  // Level progression
+  const newLevel = Math.floor(state.distance / 2000) + 1;
+  if (newLevel > state.level) {
+    state.level = newLevel;
+    state.baseSpeed = 3.5 + Math.min(state.level * 0.15, 4);
+    state.speed = Math.max(state.speed, state.baseSpeed);
+    // Theme unlock
+    if (state.level >= 11 && state.themeIdx < 1) { state.themeIdx = 1; flashThemeUnlock('SPACE'); }
+    if (state.level >= 18 && state.themeIdx < 2) { state.themeIdx = 2; flashThemeUnlock('UNDERWATER'); }
+    if (state.level >= 26 && state.themeIdx < 3) { state.themeIdx = 3; flashThemeUnlock('CYBERPUNK'); }
+  }
+
+  // Player physics
+  if (!state.grounded) {
+    state.vy += GRAVITY;
+    state.py += state.vy;
+    if (state.py >= GROUND_Y - state.ph) {
+      state.py = GROUND_Y - state.ph;
+      state.vy = 0;
+      state.grounded = true;
+      state.jumpCount = 0;
+    }
+  }
+
+  // Player trail particles
+  if (Math.random() < 0.3) {
+    state.particles.push({
+      x: state.px, y: state.py + state.ph - 4 + Math.random() * 4,
+      vx: -1 - Math.random(), vy: (Math.random() - 0.5) * 0.5,
+      life: 1, decay: 0.04,
+      color: theme.particleColor, size: 2 + Math.random() * 2,
+    });
+  }
+
+  // Obstacles
+  state.obstacleTimer++;
+  const interval = Math.max(50, state.obstacleInterval - state.level * 3);
+  if (state.obstacleTimer >= interval) {
+    spawnObstacle();
+    state.obstacleTimer = 0;
+  }
+
+  for (let i = state.obstacles.length - 1; i >= 0; i--) {
+    const obs = state.obstacles[i];
+    obs.x -= state.speed;
+
+    if (obs.type === 'laser') {
+      obs.laserPhase = (obs.laserPhase || 0) + 0.1;
+    }
+
+    // Collision
+    if (!obs.hit && checkCollision(obs)) {
+      if (state.activePowerups.fuel > 0) {
+        // Shielded - destroy obstacle
+        obs.hit = true;
+        spawnParticles(obs.x, obs.y, '#ffaa00', 15, 5);
+      } else {
+        gameOver();
+        return;
+      }
+    }
+
+    if (obs.x + obs.w < -20) {
+      state.obstacles.splice(i, 1);
+    }
+  }
+
+  // Equation timer
+  if (state.eqActive) {
+    state.eqTimer--;
+    if (state.eqTimer <= 0) {
+      // Time ran out — combo break
+      state.combo = 0;
+      state.eqActive = false;
+      state.currentEq = null;
+      state.eqCooldown = 80;
+      equationDisplay.style.opacity = '0';
+      answerPanel.style.display = 'none';
+      comboDisplay.style.opacity = '0';
+      state.shakeDur = 6;
+    }
+  }
+  if (state.eqCooldown > 0) state.eqCooldown--;
+
+  // Math Storm
+  if (state.mathStorm) {
+    state.mathStormTimer--;
+    if (state.mathStormTimer <= 0) {
+      state.mathStorm = false;
+      mathStormBanner.style.opacity = '0';
+    }
+    // Frequent equations during storm
+    if (!state.eqActive && state.eqCooldown <= 0 && Math.random() < 0.02) {
+      triggerEquation();
+    }
+  } else if (state.combo >= 5 && Math.random() < 0.001) {
+    triggerMathStorm();
+  }
+
+  // Power-ups spawn
+  state.powerupTimer++;
+  if (state.powerupTimer >= 600 + rand(0, 400)) {
+    spawnPowerup();
+    state.powerupTimer = 0;
+  }
+
+  for (let i = state.powerups.length - 1; i >= 0; i--) {
+    const pu = state.powerups[i];
+    pu.x -= state.speed;
+    pu.bobPhase += 0.05;
+
+    // Collect
+    const px = state.px + state.pw / 2, py = state.py + state.ph / 2;
+    const dist = Math.hypot(px - pu.x, py - (pu.y + Math.sin(pu.bobPhase) * 6));
+    if (dist < 30) {
+      state.activePowerups[pu.type] = 300; // 5 seconds
+      spawnParticles(pu.x, pu.y, theme.accent, 15, 5);
+      const labels = { calc: 'CALC+', fuel: 'SHIELD!', time: 'SLOW!' };
+      addFloatText(pu.x, pu.y, labels[pu.type], theme.accent, 18);
+      state.powerups.splice(i, 1);
+      continue;
+    }
+    if (pu.x < -20) state.powerups.splice(i, 1);
+  }
+
+  // Active powerups countdown
+  for (const key of ['calc', 'fuel', 'time']) {
+    if (state.activePowerups[key] > 0) state.activePowerups[key]--;
+  }
+
+  // Time power-up slows obstacles
+  if (state.activePowerups.time > 0) {
+    state.speed = Math.max(2, state.baseSpeed * 0.6);
+  } else if (!state.mathStorm) {
+    state.speed = Math.min(state.baseSpeed + 0.5, state.speed); // gentle recovery
+  }
+
+  // Particles
+  for (let i = state.particles.length - 1; i >= 0; i--) {
+    const p = state.particles[i];
+    p.x += p.vx; p.y += p.vy;
+    p.life -= p.decay;
+    if (p.life <= 0) state.particles.splice(i, 1);
+  }
+
+  // Buildings scroll
+  for (const b of state.buildings) {
+    b.x -= state.speed * 0.5;
+    if (b.x + b.w < -10) {
+      b.x = W + rand(0, 40);
+      b.h = rand(60, 200);
+      b.w = rand(30, 60);
+      b.windowRows = Math.floor(b.h / 20);
+      b.windowCols = Math.floor(b.w / 14);
+    }
+  }
+
+  // Stars
+  for (const s of state.stars) {
+    s.blink += s.speed;
+  }
+
+  // Screen shake
+  if (state.shakeDur > 0) {
+    state.shakeX = (Math.random() - 0.5) * 6;
+    state.shakeY = (Math.random() - 0.5) * 6;
+    state.shakeDur--;
+  } else {
+    state.shakeX = 0; state.shakeY = 0;
+  }
+
+  // HUD
+  hudScore.textContent = state.score.toLocaleString();
+  hudCombo.textContent = state.combo + 'x';
+  hudHigh.textContent = state.highScore.toLocaleString();
+  levelDisplay.textContent = 'LV ' + state.level;
+  themeLabel.textContent = themes[themeKeys[state.themeIdx]].name;
+
+  // Powerup badges
+  let badgeHTML = '';
+  if (state.activePowerups.calc > 0) badgeHTML += '<span class="powerup-badge badge-calc">CALC</span>';
+  if (state.activePowerups.fuel > 0) badgeHTML += '<span class="powerup-badge badge-fuel">SHIELD</span>';
+  if (state.activePowerups.time > 0) badgeHTML += '<span class="powerup-badge badge-time">SLOW</span>';
+  powerupIndicator.innerHTML = badgeHTML;
+}
+
+function flashThemeUnlock(name) {
+  addFloatText(W / 2, H / 2 + 50, `THEME: ${name} UNLOCKED!`, '#ffcc00', 16);
+  state.shakeDur = 15;
+  spawnParticles(W / 2, H / 2, '#ffcc00', 30, 8);
+}
+
+// ═══════════════════════════════════════════
+// DRAW
+// ═══════════════════════════════════════════
+function draw() {
+  const theme = themes[themeKeys[state.themeIdx]];
+
+  ctx.save();
+  ctx.translate(state.shakeX, state.shakeY);
+
+  // Sky gradient
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, theme.sky1);
+  grad.addColorStop(1, theme.sky2);
+  ctx.fillStyle = grad;
+  ctx.fillRect(-10, -10, W + 20, H + 20);
+
+  // Stars
+  for (const s of state.stars) {
+    const alpha = 0.3 + 0.7 * Math.abs(Math.sin(s.blink));
+    ctx.fillStyle = theme.starColor.replace(/[\d.]+\)$/, (alpha * 0.5).toFixed(2) + ')');
+    if (theme.starColor.startsWith('#')) {
+      ctx.globalAlpha = alpha * 0.5;
+      ctx.fillStyle = '#ffffff';
+    }
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+
+  // Buildings (parallax)
+  for (const b of state.buildings) {
+    ctx.fillStyle = theme.buildingColors[b.colorIdx];
+    ctx.fillRect(b.x, GROUND_Y - b.h, b.w, b.h);
+    // Windows
+    ctx.fillStyle = theme.buildingWindows;
+    for (let r = 0; r < b.windowRows; r++) {
+      for (let c = 0; c < b.windowCols; c++) {
+        if (Math.random() > 0.3 || r < 2) { // some windows off
+          ctx.fillRect(
+            b.x + 4 + c * 12,
+            GROUND_Y - b.h + 8 + r * 20,
+            6, 10
+          );
+        }
+      }
+    }
+  }
+
+  // Ground
+  ctx.fillStyle = theme.groundColor;
+  ctx.fillRect(0, GROUND_Y, W, H - GROUND_Y);
+
+  // Ground line
+  ctx.strokeStyle = theme.groundLine;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(0, GROUND_Y);
+  ctx.lineTo(W, GROUND_Y);
+  ctx.stroke();
+
+  // Ground grid lines (scrolling)
+  ctx.strokeStyle = theme.groundLine.replace(/[\d.]+\)$/, '0.15)');
+  ctx.lineWidth = 1;
+  for (let i = 0; i < W / 40 + 2; i++) {
+    const gx = i * 40 - state.groundOffset;
+    ctx.beginPath();
+    ctx.moveTo(gx, GROUND_Y + 2);
+    ctx.lineTo(gx, H);
+    ctx.stroke();
+  }
+  for (let j = 1; j < 4; j++) {
+    ctx.beginPath();
+    ctx.moveTo(0, GROUND_Y + j * 18);
+    ctx.lineTo(W, GROUND_Y + j * 18);
+    ctx.stroke();
+  }
+
+  // Particles
+  for (const p of state.particles) {
+    ctx.globalAlpha = p.life;
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, Math.max(0.5, p.size * p.life), 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  // Obstacles
+  for (const obs of state.obstacles) {
+    if (obs.hit) continue;
+
+    ctx.shadowColor = theme.obstacleGlow;
+    ctx.shadowBlur = 12;
+
+    if (obs.type === 'block') {
+      ctx.fillStyle = theme.obstacleColor;
+      ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+      // Inner pattern
+      ctx.strokeStyle = theme.obstacleGlow;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(obs.x + 3, obs.y + 3, obs.w - 6, obs.h - 6);
+    } else if (obs.type === 'spike') {
+      ctx.fillStyle = theme.obstacleColor;
+      ctx.beginPath();
+      ctx.moveTo(obs.x + obs.w / 2, obs.y);
+      ctx.lineTo(obs.x + obs.w, obs.y + obs.h);
+      ctx.lineTo(obs.x, obs.y + obs.h);
+      ctx.closePath();
+      ctx.fill();
+    } else if (obs.type === 'floating') {
+      ctx.fillStyle = theme.obstacleColor;
+      const fy = obs.y + Math.sin(Date.now() * 0.003) * 8;
+      ctx.fillRect(obs.x, fy, obs.w, obs.h);
+      ctx.strokeStyle = theme.obstacleGlow;
+      ctx.strokeRect(obs.x + 2, fy + 2, obs.w - 4, obs.h - 4);
+      obs.y = fy; // update for collision
+    } else if (obs.type === 'wall') {
+      ctx.fillStyle = theme.obstacleColor;
+      ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+      // Hazard stripes
+      ctx.fillStyle = '#000000';
+      for (let s = 0; s < obs.h; s += 12) {
+        ctx.fillRect(obs.x, obs.y + s, obs.w, 4);
+      }
+    } else if (obs.type === 'laser') {
+      const alpha = 0.5 + 0.5 * Math.sin(obs.laserPhase || 0);
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = '#ff0000';
+      ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+      ctx.globalAlpha = 1;
+      // Endpoints
+      ctx.fillStyle = '#ff4444';
+      ctx.beginPath();
+      ctx.arc(obs.x, obs.y + 3, 6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(obs.x + obs.w, obs.y + 3, 6, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+  }
+
+  // Power-ups
+  for (const pu of state.powerups) {
+    const by = pu.y + Math.sin(pu.bobPhase) * 6;
+    ctx.save();
+    ctx.translate(pu.x, by);
+
+    const colors = { calc: '#00aaff', fuel: '#ffaa00', time: '#ff44ff' };
+    const symbols = { calc: 'Σ', fuel: '🛡', time: '⏳' };
+    const col = colors[pu.type];
+
+    ctx.shadowColor = col;
+    ctx.shadowBlur = 15;
+    ctx.strokeStyle = col;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    // Diamond shape
+    ctx.moveTo(0, -pu.size);
+    ctx.lineTo(pu.size, 0);
+    ctx.lineTo(0, pu.size);
+    ctx.lineTo(-pu.size, 0);
+    ctx.closePath();
+    ctx.stroke();
+    ctx.fillStyle = col + '33';
+    ctx.fill();
+
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = col;
+    ctx.font = '12px Orbitron';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const labels = { calc: 'Σ', fuel: '♦', time: '↺' };
+    ctx.fillText(labels[pu.type], 0, 0);
+
+    ctx.restore();
+  }
+
+  // Player
+  drawPlayer(theme);
+
+  // Math Storm visual effect
+  if (state.mathStorm) {
+    ctx.fillStyle = `rgba(255,68,255,${0.03 + 0.02 * Math.sin(Date.now() * 0.005)})`;
+    ctx.fillRect(-10, -10, W + 20, H + 20);
+  }
+
+  // Equation timer bar
+  if (state.eqActive && state.currentEq) {
+    const maxTime = Math.max(180, 300 - state.level * 3);
+    const pct = state.eqTimer / maxTime;
+    const barW = 200;
+    const barH = 5;
+    const barX = W / 2 - barW / 2;
+    const barY = H / 2 + 35;
+
+    ctx.fillStyle = '#333';
+    ctx.fillRect(barX, barY, barW, barH);
+    const timerColor = pct > 0.4 ? '#00ffaa' : pct > 0.15 ? '#ffcc00' : '#ff4444';
+    ctx.fillStyle = timerColor;
+    ctx.fillRect(barX, barY, barW * pct, barH);
+  }
+
+  // Calculator power-up visual (highlights correct answer)
+  if (state.activePowerups.calc > 0 && state.eqActive && state.currentEq) {
+    answerBtns.forEach((btn, i) => {
+      if (state.currentEq.choices[i] === state.currentEq.answer) {
+        btn.style.borderColor = '#00aaff';
+        btn.style.boxShadow = '0 0 12px #00aaff66';
+      }
+    });
+  }
+
+  ctx.restore();
+}
+
+function drawPlayer(theme) {
+  const px = state.px, py = state.py, pw = state.pw, ph = state.ph;
+  const t = Date.now() * 0.01;
+
+  // Shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.3)';
+  ctx.beginPath();
+  ctx.ellipse(px + pw / 2, GROUND_Y + 2, pw * 0.6, 4, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Shield aura
+  if (state.activePowerups.fuel > 0) {
+    ctx.strokeStyle = '#ffaa0066';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(px + pw / 2, py + ph / 2, pw * 0.9 + Math.sin(t * 2) * 3, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  // Body
+  const bodyGrad = ctx.createLinearGradient(px, py, px, py + ph);
+  bodyGrad.addColorStop(0, theme.accent);
+  bodyGrad.addColorStop(1, theme.accentDim);
+  ctx.fillStyle = bodyGrad;
+
+  // Rounded body
+  ctx.beginPath();
+  ctx.moveTo(px + 4, py);
+  ctx.lineTo(px + pw - 4, py);
+  ctx.quadraticCurveTo(px + pw, py, px + pw, py + 4);
+  ctx.lineTo(px + pw, py + ph - 4);
+  ctx.quadraticCurveTo(px + pw, py + ph, px + pw - 4, py + ph);
+  ctx.lineTo(px + 4, py + ph);
+  ctx.quadraticCurveTo(px, py + ph, px, py + ph - 4);
+  ctx.lineTo(px, py + 4);
+  ctx.quadraticCurveTo(px, py, px + 4, py);
+  ctx.fill();
+
+  // Visor
+  ctx.fillStyle = '#000000aa';
+  ctx.fillRect(px + 4, py + 8, pw - 8, 10);
+
+  // Eye(s)
+  const eyeGlow = theme.accent;
+  ctx.shadowColor = eyeGlow;
+  ctx.shadowBlur = 8;
+  ctx.fillStyle = eyeGlow;
+  ctx.fillRect(px + 8, py + 10, 6, 6);
+  ctx.fillRect(px + pw - 14, py + 10, 6, 6);
+  ctx.shadowBlur = 0;
+
+  // Legs animation
+  if (state.grounded) {
+    const legPhase = Math.sin(t * 3);
+    ctx.fillStyle = theme.accentDim;
+    ctx.fillRect(px + 6 + legPhase * 3, py + ph, 5, 5);
+    ctx.fillRect(px + pw - 11 - legPhase * 3, py + ph, 5, 5);
+  }
+
+  // Jump trail
+  if (!state.grounded) {
+    ctx.globalAlpha = 0.3;
+    for (let j = 1; j <= 3; j++) {
+      ctx.fillStyle = theme.accent + '44';
+      ctx.beginPath();
+      ctx.arc(px + pw / 2, py + ph + j * 10, 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+}
+
+// ═══════════════════════════════════════════
+// GAME OVER
+// ═══════════════════════════════════════════
+function gameOver() {
+  state.gameover = true;
+  state.running = false;
+
+  if (state.score > state.highScore) {
+    state.highScore = state.score;
+    localStorage.setItem('mathRunnerHigh', state.highScore);
+  }
+
+  document.getElementById('go-score').textContent = `SCORE: ${state.score.toLocaleString()}`;
+  document.getElementById('go-level').textContent = `Level Reached: ${state.level}`;
+  document.getElementById('go-correct').textContent = `Equations Solved: ${state.totalCorrect}`;
+  document.getElementById('go-combo').textContent = `Best Combo: ${state.maxCombo}x`;
+  document.getElementById('go-theme').textContent = `Theme: ${themes[themeKeys[state.themeIdx]].name}`;
+
+  equationDisplay.style.opacity = '0';
+  answerPanel.style.display = 'none';
+  comboDisplay.style.opacity = '0';
+  mathStormBanner.style.opacity = '0';
+
+  gameoverScreen.style.display = 'flex';
+
+  // Explosion
+  spawnParticles(state.px + 14, state.py + 20, '#ff4444', 40, 10);
+  state.shakeDur = 20;
+}
+
+// ═══════════════════════════════════════════
+// INIT / RESET
+// ═══════════════════════════════════════════
+function resetGame() {
+  state = {
+    running: true,
+    gameover: false,
+    score: 0,
+    highScore: parseInt(localStorage.getItem('mathRunnerHigh') || '0'),
+    combo: 0,
+    maxCombo: 0,
+    totalCorrect: 0,
+    level: 1,
+    speed: 3.5,
+    baseSpeed: 3.5,
+    distance: 0,
+    themeIdx: 0,
+    px: 120, py: GROUND_Y - 40, pw: 28, ph: 40,
+    vy: 0, grounded: true, jumpCount: 0, maxJumps: 2,
+    obstacles: [],
+    obstacleTimer: 0,
+    obstacleInterval: 120,
+    currentEq: null,
+    eqActive: false,
+    eqTimer: 0,
+    eqCooldown: 0,
+    mathStorm: false,
+    mathStormTimer: 0,
+    powerups: [],
+    powerupTimer: 0,
+    activePowerups: { calc: 0, fuel: 0, time: 0 },
+    buildings: state.buildings,
+    stars: state.stars,
+    particles: [],
+    bgOffset: 0,
+    groundOffset: 0,
+    shakeX: 0, shakeY: 0, shakeDur: 0,
+    floatTexts: [],
+  };
+
+  equationDisplay.style.opacity = '0';
+  answerPanel.style.display = 'none';
+  comboDisplay.style.opacity = '0';
+  mathStormBanner.style.opacity = '0';
+  gameoverScreen.style.display = 'none';
+}
+
+// ═══════════════════════════════════════════
+// INPUT
+// ═══════════════════════════════════════════
+const keys = {};
+
+function jump() {
+  if (state.jumpCount < state.maxJumps) {
+    state.vy = JUMP_VEL;
+    state.grounded = false;
+    state.jumpCount++;
+    spawnParticles(state.px + state.pw / 2, GROUND_Y, '#ffffff', 6, 3);
+  }
+}
+
+document.addEventListener('keydown', (e) => {
+  if (keys[e.code]) return;
+  keys[e.code] = true;
+
+  if (!state.running && !state.gameover) return;
+
+  if (e.code === 'Space' || e.code === 'ArrowUp') {
+    e.preventDefault();
+    jump();
+  }
+
+  // Answer keys
+  if (state.eqActive) {
+    if (e.key === '1') submitAnswer(0);
+    if (e.key === '2') submitAnswer(1);
+    if (e.key === '3') submitAnswer(2);
+    if (e.key === '4') submitAnswer(3);
+  }
+});
+
+document.addEventListener('keyup', (e) => {
+  keys[e.code] = false;
+});
+
+// Touch / click jump
+canvas.addEventListener('pointerdown', (e) => {
+  if (state.running && !state.gameover) {
+    // Only jump if not clicking answer buttons
+    jump();
+  }
+});
+
+// Answer buttons
+answerBtns.forEach((btn, i) => {
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    submitAnswer(i);
+  });
+});
+
+// Start / restart
+document.getElementById('start-btn').addEventListener('click', () => {
+  startScreen.style.display = 'none';
+  resetGame();
+});
+
+document.getElementById('restart-btn').addEventListener('click', () => {
+  resetGame();
+});
+
+// ═══════════════════════════════════════════
+// GAME LOOP
+// ═══════════════════════════════════════════
+initBuildings();
+initStars();
+
+function gameLoop() {
+  update();
+  draw();
+  requestAnimationFrame(gameLoop);
+}
+
+// Draw initial idle screen
+function drawIdle() {
+  const theme = themes[themeKeys[0]];
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, theme.sky1);
+  grad.addColorStop(1, theme.sky2);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+
+  for (const s of state.stars) {
+    s.blink += s.speed;
+    const alpha = 0.3 + 0.7 * Math.abs(Math.sin(s.blink));
+    ctx.globalAlpha = alpha * 0.3;
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  for (const b of state.buildings) {
+    ctx.fillStyle = theme.buildingColors[b.colorIdx];
+    ctx.fillRect(b.x, GROUND_Y - b.h, b.w, b.h);
+  }
+
+  ctx.fillStyle = theme.groundColor;
+  ctx.fillRect(0, GROUND_Y, W, H - GROUND_Y);
+  ctx.strokeStyle = theme.groundLine;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(0, GROUND_Y);
+  ctx.lineTo(W, GROUND_Y);
+  ctx.stroke();
+}
+
+// Pre-start idle animation
+function idleLoop() {
+  if (state.running) { gameLoop(); return; }
+  drawIdle();
+  requestAnimationFrame(idleLoop);
+}
+
+idleLoop();
+</script>
+</body>
+</html>
